@@ -40,6 +40,11 @@ export class autoSendUpdateLog extends plugin {
     if (!this.appconfig.remind) {return}
 
     let key = `Yz:loginMsg:${Bot.uin}`
+    //空值检查，防止 cfg.bot.online_msg_exp 为 null 或 undefined 时导致 Redis 操作失败
+    //检查配置值是否存在，如果不存在则跳过 Redis 操作，避免程序崩溃
+    if (!cfg.bot.online_msg_exp) {
+      return
+    }
     await redis.set(key, '1', { EX: cfg.bot.online_msg_exp })
   }
 

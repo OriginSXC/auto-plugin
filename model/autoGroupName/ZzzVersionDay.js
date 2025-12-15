@@ -5,11 +5,11 @@
  */
 export function NameCardContent() {
     // 绝零倒版本号
-    let Versions = [11,12,13,14,15,16,17,18,20,21,22]
+    let Versions = [24,25,26,27,28,30,31,32,33,34]
     let Index = 0
   
     // 获取持续时间
-    let baseTime = new Date('2024-8-14 15:00:00').getTime()
+    let baseTime = new Date('2025-12-31 15:00:00').getTime()
     let nowTime = new Date().getTime()
     let duringTime = baseTime - nowTime
   
