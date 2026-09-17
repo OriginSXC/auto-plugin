@@ -4,6 +4,10 @@
 
 Yunzai-Bot V3 的一个小型插件包，主要提供各式各样的定时任务功能和自动监听功能
 
+> **本仓库是 [Nwflower/auto-plugin](https://github.com/Nwflower/auto-plugin) 的分支。**
+> 上游已停止功能更新，此分支只做兼容性修复，主要解决插件在 **TRSS-Yunzai 多 Bot 环境**下失效的问题。
+> 功能与配置项和上游保持一致，没有新增功能。改了什么见下方 [本分支的改动](#本分支的改动)。
+
 # 前排提示
 
 感谢您访问该插件！值得一提的是，该插件已停止功能的更新，非必要请勿发起issue，目前仅做部分功能的维护，感谢您的理解！
@@ -36,13 +40,41 @@ Yunzai-Bot V3 的一个小型插件包，主要提供各式各样的定时任务
 使用github方式获取
 
 ```
+git clone --depth=1 https://github.com/OriginSXC/auto-plugin.git ./plugins/auto-plugin/
+```
+
+如果你想安装上游原版（不含本分支的兼容性修复）
+```
 git clone --depth=1 https://github.com/Nwflower/auto-plugin.git ./plugins/auto-plugin/
 ```
 
-如果您所在的地区网络不是很好，建议使用gitee源
+上游的 gitee 源
 ```
 git clone --depth=1 https://gitee.com/Nwflower/auto-plugin.git ./plugins/auto-plugin/
 ```
+
+### 本分支的改动
+
+TRSS-Yunzai 支持多个 Bot 同时在线，`Bot.uin` 是一个**数组**，它的 `toJSON()` 每次调用会**随机**返回其中一个 uin（见 TRSS-Yunzai `lib/bot.js`）。原插件多处把 `Bot.uin` 直接当作 user_id 或 redis key 的一部分使用，在多 Bot 环境下就会出现拿甲适配器的 uin 去操作乙适配器的情况。
+
+单 Bot 的 Miao-Yunzai / Yunzai-Bot V3 下 `Bot.uin` 就是号码本身，本分支所有改动都会自然回落到原来的取值，**行为与上游一致**。
+
+| 模块 | 问题 | 修复 |
+| --- | --- | --- |
+| `autoGroupName` 群名片小尾巴 | **功能完全不可用**。用随机取到的 uin 去改群名片，适配器直接拒绝（NapCat 返回 `user_id: expected a positive integer`）。实测连续 94 次执行 94 次失败 | 通过 `Bot.gl` 条目上的 `bot_id` 找到该群真正所属的 Bot，用它的 uin 和昵称 |
+| `autoUpdate` / `autoSendUpdateLog` | 更新标记写入和读取分别取到不同的随机 uin，redis key 对不上，重启后的更新日志推送时灵时不灵 | 改用确定性的 Bot 标识拼 key |
+| `autoSendUpdateLog` 关闭上线提醒 | `Yz:loginMsg` 是 Yunzai 按 Bot 分别记的，只压掉随机一个 Bot 的提醒 | 遍历所有在线 Bot 逐个写入 |
+| `autoWebSocketTask` | 日志去重 key 每次随机，去重失效；模拟事件的 `self_id` 可能挂到不相干的 Bot 上 | key 用确定性标识；`self_id` 用目标群所属的 Bot |
+| 各处转发消息 | 转发节点的头像和昵称会随机变成别的适配器 | 有消息事件时用事件本身的 Bot，否则用主 Bot |
+
+另外：
+
+* `setGroupCard` 失败时会打印适配器返回的具体原因，不再只输出「建议降频或关闭该功能」这种与实际原因无关、会把排查带偏的提示
+* `setGroupCard` 失败时返回 `false`，使默认模式下「遇到失败中止任务」的判断真正生效（原先无论成败都返回 `true`）
+* 群名片小尾巴的热搜类数据源增加 UA、检查 `content-type`、失败时打印响应片段，不再因为上游返回 HTML 而抛出未捕获异常
+* 修正 B站 / 微博 / 抖音 / 百度 / 知乎五个热搜模块被误写成「头条热搜:」的来源前缀
+
+相关实现集中在 `model/groupBot.js`。
 
 ### 功能列表及使用说明
 
@@ -239,7 +271,7 @@ A：发送`#自动更新日志`或者等待机器人按你配置的时间发送�
 
 Q：还有其他疑问怎么办？
 
-A：你可以[提出issue](https://github.com/Nwflower/auto-plugin/issues)或者对于新功能[发起PR](https://github.com/Nwflower/auto-plugin/pulls)。当然，你也可以使用QQ群组功能反馈。**点击加入[AUTO插件交流群](https://qm.qq.com/cgi-bin/qm/qr?k=XOTZhBWpv68F1sfsMIzKJpg28NBPKJgg&jump_from=webapi&authKey=/XagQoLiUhOi+t67MCkWOSRLlXe+ywVmrkCHdoD3CjwqNzAUYspTrqYklkwb3W0R)**。如果你想要获得开发者的手把手指导，请使用[爱发电](https://afdian.net/a/Nwflower)。
+A：本分支的兼容性问题请到 [本仓库 issue](https://github.com/OriginSXC/auto-plugin/issues) 反馈。插件本身的功能问题，你可以向上游[提出issue](https://github.com/Nwflower/auto-plugin/issues)或者对于新功能[发起PR](https://github.com/Nwflower/auto-plugin/pulls)。当然，你也可以使用QQ群组功能反馈。**点击加入[AUTO插件交流群](https://qm.qq.com/cgi-bin/qm/qr?k=XOTZhBWpv68F1sfsMIzKJpg28NBPKJgg&jump_from=webapi&authKey=/XagQoLiUhOi+t67MCkWOSRLlXe+ywVmrkCHdoD3CjwqNzAUYspTrqYklkwb3W0R)**。如果你想要获得开发者的手把手指导，请使用[爱发电](https://afdian.net/a/Nwflower)。
 
 ### 其他
 
