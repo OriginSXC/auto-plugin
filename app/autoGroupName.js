@@ -2,6 +2,7 @@ import plugin from '../../../lib/plugins/plugin.js'
 import os from 'os'
 import lodash from 'lodash'
 import setting from '../model/setting.js'
+import { getGroupBot } from '../model/groupBot.js'
 import { pluginResources, pluginRoot } from '../model/path.js'
 import path from 'path'
 import fs from 'fs'
@@ -251,12 +252,20 @@ export class autoGroupName extends plugin {
   // 根据所给后缀设置某群的名片
   async setGroupCard (groupID, Suffix) {
     if (!Suffix) return false
-    let card = `${this.appConfig.nickname || Bot.nickname}｜${Suffix}`
+    // 多 Bot 环境下必须用该群自己所属的 Bot，不能用会随机取值的 Bot.uin
+    const self = getGroupBot(groupID)
+    let card = `${this.appConfig.nickname || self.nickname}｜${Suffix}`
     try {
-      if (Bot.pickMember(groupID, Bot.uin).card === card) return false
-      await Bot.pickGroup(groupID).setCard(Bot.uin, card)
+      let group = Bot.pickGroup(groupID)
+      if (group.pickMember(self.uin).card === card) return false
+      await group.setCard(self.uin, card)
     } catch (e) {
-      logger.error('更改群名片流程异常，建议降频或关闭该功能')
+      // 原来只打一句笼统提示、异常被吞，排查时看不出任何线索
+      let reason = e?.wording || e?.message || (() => {
+        try { return JSON.stringify(e) } catch { return String(e) }
+      })()
+      logger.error(`更改群名片失败（群 ${groupID}）：${reason}`)
+      return false
     }
     return true
   }
