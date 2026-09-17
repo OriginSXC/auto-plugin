@@ -2,7 +2,7 @@ import plugin from '../../../lib/plugins/plugin.js'
 import os from 'os'
 import lodash from 'lodash'
 import setting from '../model/setting.js'
-import { getGroupBot } from '../model/groupBot.js'
+import { getGroupBot, getEventBot } from '../model/groupBot.js'
 import { pluginResources, pluginRoot } from '../model/path.js'
 import path from 'path'
 import fs from 'fs'
@@ -223,11 +223,13 @@ export class autoGroupName extends plugin {
   // 渲染图片
   async sendTabImage (config) {
     if (config === undefined) config = this.appConfig
+    // 预览图里的昵称和头像要用当前这个 Bot，不能用会随机取值的 Bot.uin
+    const self = getEventBot(this.e)
     let models = fs.readdirSync(path.join(pluginRoot, 'model/autoGroupName')).filter(file => file.endsWith('.js'))
     let TmpModels = []
     for (let model of models) {
       let pureModel = await this.fileExtName(model)
-      let example = `${config.nickname || Bot.nickname}｜${await this.getSuffixFun({ active: pureModel })}`
+      let example = `${config.nickname || self.nickname}｜${await this.getSuffixFun({ active: pureModel })}`
       if (!Array.isArray(config.active)) config.active = [config.active]
       TmpModels.push({
         pureModel,
@@ -241,7 +243,7 @@ export class autoGroupName extends plugin {
       headStyle,
       pluResPath: `${pluginResources}/`,
       imgType: 'png',
-      uin: Bot.uin,
+      uin: self.uin,
       models: TmpModels,
       Notice: '使用#切换名片样式+序号可直接更改，多个序号请用逗号隔开'
     })

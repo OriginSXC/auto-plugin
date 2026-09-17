@@ -1,4 +1,5 @@
 import plugin from '../../../lib/plugins/plugin.js'
+import { getMainBot } from '../model/groupBot.js'
 import { createRequire } from 'module'
 import lodash from 'lodash'
 import fs from 'node:fs'
@@ -166,7 +167,8 @@ export class autoUpdate extends plugin {
       await this.saveLog()
     }
     if (this.appconfig.log === 2) {
-      let key = `Yz:auto-plugin:Update:${Bot.uin}`
+      // 用确定性的 Bot 标识，否则多 Bot 下这里写的 key 和 autoSendUpdateLog 读的对不上
+      let key = `Yz:auto-plugin:Update:${getMainBot().uin}`
       redis.set(key, '1', { EX: 72000 })
     }
   }
